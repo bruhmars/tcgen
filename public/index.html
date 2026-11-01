@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TestGen: AI Test Case & Plan Generator</title>
+  <meta name="description" content="Generate Vitest unit tests, comprehensive API test plans, and PRD requirement test matrices with Excel and Markdown export.">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand"><span class="logo">&#10003;</span> TestGen <strong>2.0</strong></div>
+    <div class="badges">
+      <span class="mcp-badge">MCP Enabled</span>
+      <a class="gh" href="https://github.com/bruhmars" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>AI Test Case Generator for Code, APIs & PRDs</h1>
+      <p>Generate executable <strong>Vitest</strong> unit tests, exhaustive <strong>REST API test plans</strong> (positive, negative, boundary, security), or complete <strong>Requirements Traceability Matrices (RTM)</strong> with P0–P3 priorities and styled Excel export.</p>
+    </section>
+
+    <section class="workspace">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="modes">
+            <button id="mode-paste" class="mode active" type="button">Code</button>
+            <button id="mode-repo" class="mode" type="button">GitHub Repo</button>
+            <button id="mode-api" class="mode" type="button">API Endpoint</button>
+            <button id="mode-req" class="mode" type="button">Requirements / PRD</button>
+          </div>
+          <button id="sample" class="link" type="button">Load example</button>
+        </div>
+
+        <!-- 1. Paste Code Mode -->
+        <div id="paste-body" class="body">
+          <textarea id="code" spellcheck="false" placeholder="Paste TypeScript or JavaScript functions here..."></textarea>
+          <div class="panel-foot">
+            <span id="count">0 / 12000</span>
+            <button id="go" class="primary" type="button">Generate tests</button>
+          </div>
+        </div>
+
+        <!-- 2. Repo Mode -->
+        <div id="repo-body" class="body" hidden>
+          <div class="repo-top">
+            <input id="repo-url" type="text" placeholder="https://github.com/owner/repo" spellcheck="false" autocomplete="off">
+            <button id="scan" class="primary" type="button">Scan</button>
+          </div>
+          <p class="hint">Public repositories only. Pick up to 3 source files to generate Vitest suites.</p>
+          <div id="repo-files" class="repo-files"></div>
+          <div class="panel-foot">
+            <span id="repo-count">Scan a repository to begin</span>
+            <button id="repo-go" class="primary" type="button" disabled>Generate tests</button>
+          </div>
+        </div>
+
+        <!-- 3. API Mode -->
+        <div id="api-body" class="body" hidden>
+          <div class="form-row">
+            <div class="field field-method">
+              <label for="api-method">Method</label>
+              <select id="api-method">
+                <option value="GET">GET</option>
+                <option value="POST" selected>POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+                <option value="PATCH">PATCH</option>
+              </select>
+            </div>
+            <div class="field field-endpoint">
+              <label for="api-endpoint">Endpoint Route</label>
+              <input id="api-endpoint" type="text" placeholder="/api/v1/users or https://api.example.com/checkout">
+            </div>
+          </div>
+          <div class="field">
+            <label for="api-payload">Payload / Request Body Schema (JSON)</label>
+            <textarea id="api-payload" spellcheck="false" placeholder='{\n  "username": "string",\n  "email": "string",\n  "age": 25\n}'></textarea>
+          </div>
+          <div class="field">
+            <label for="api-context">Additional Constraints / Headers</label>
+            <input id="api-context" type="text" placeholder="e.g. Bearer token auth required, rate limit 60 req/min">
+          </div>
+          <div class="panel-foot">
+            <span class="hint-small">Generates Happy, Negative, BVA & Security cases</span>
+            <button id="api-go" class="primary" type="button">Generate API Tests</button>
+          </div>
+        </div>
+
+        <!-- 4. Requirement / PRD Mode -->
+        <div id="req-body" class="body" hidden>
+          <div class="field">
+            <label for="req-title">Feature / Spec Title</label>
+            <input id="req-title" type="text" placeholder="User Authentication & Password Reset Flow">
+          </div>
+          <div class="field">
+            <label for="req-text">Requirements / User Stories / Acceptance Criteria</label>
+            <textarea id="req-text" spellcheck="false" placeholder="Paste user stories or requirements here:
+- User can sign up with email and strong password
+- System sends verification code valid for 10 minutes
+- User cannot login before verification
+- Password must contain at least 8 chars, 1 uppercase, 1 digit..."></textarea>
+          </div>
+          <div class="panel-foot">
+            <span class="hint-small">Generates Traceability Matrix (RTM) + P0-P3 priorities</span>
+            <button id="req-go" class="primary" type="button">Generate PRD Tests</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Output Panel -->
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Test Plan Results</h2>
+          <div id="export-actions" class="export-actions" hidden>
+            <button id="btn-export-excel" class="export-btn excel" type="button">📊 Export Excel (.xlsx)</button>
+            <button id="btn-export-csv" class="export-btn csv" type="button">📄 CSV</button>
+            <button id="btn-export-md" class="export-btn md" type="button">📝 Markdown</button>
+          </div>
+        </div>
+        <div id="output" class="output" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="mcp-info">
+      <div class="mcp-card">
+        <h3>🔌 Model Context Protocol (MCP) Integration</h3>
+        <p>You can also use TestGen directly in <strong>Claude Desktop</strong>, <strong>Cursor</strong>, or <strong>Antigravity</strong> via MCP stdio:</p>
+        <pre><code>{
+  "mcpServers": {
+    "tcgen": {
+      "command": "node",
+      "args": ["/home/ojeswi/tcgen/bin/mcp.js"],
+      "env": {
+        "GROQ_API_KEY": "your-api-key"
+      }
+    }
+  }
+}</code></pre>
+      </div>
+    </section>
+  </main>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>

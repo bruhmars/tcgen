@@ -66,6 +66,7 @@ Instructions:
 3. If a test relies on async/mock behaviour, add the correct vi.fn() / vi.spyOn() setup.
 4. Output the COMPLETE corrected describe block — do not omit passing tests.
 5. Output ONLY the TypeScript code block. No JSON. No explanations.
+6. Do NOT add any import statements — the test runner already imports everything needed.
 ${errorSection}`;
 }
 
@@ -135,9 +136,10 @@ async function repairTestCode(
       continue;
     }
 
-    // Valid — persist
+    // Valid — persist. Also strip any stray imports the model added.
+    const cleanCode = code.replace(/^import\s+[^;]+;\s*\n?/gm, "").trim();
     (llm as any).save?.(REPAIR_SYSTEM_PROMPT, prompt, raw);
-    return code;
+    return cleanCode;
   }
   return null;
 }
@@ -150,10 +152,23 @@ function buildTestFile(
   describeBlocks: string[]
 ): string {
   const importList = fnNames.join(", ");
+
+  // Strip ALL import statements from blocks — we add the correct ones at the top.
+  // Also collect any extra vitest exports used (beforeEach, afterEach, etc.)
+  const vitestNames = new Set(["describe", "it", "expect", "vi"]);
+  const allVitestExports = ["beforeEach", "afterEach", "beforeAll", "afterAll", "test"];
+  const joined = describeBlocks.join("\n");
+  for (const name of allVitestExports) {
+    if (new RegExp(`\\b${name}\\s*\\(`).test(joined)) vitestNames.add(name);
+  }
+  const cleanBlocks = describeBlocks.map((b) =>
+    b.replace(/^import\s+[^;]+;\s*\n?/gm, "").trim()
+  );
+
   return (
-    `import { describe, it, expect, vi } from "vitest";\n` +
+    `import { ${[...vitestNames].join(", ")} } from "vitest";\n` +
     `import { ${importList} } from ${JSON.stringify(importPath)};\n\n` +
-    describeBlocks.join("\n\n") +
+    cleanBlocks.join("\n\n") +
     "\n"
   );
 }

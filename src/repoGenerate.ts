@@ -155,13 +155,20 @@ export async function generateForRepo(
       const testFileName = filePath.replace(/\.[tj]sx?$/, ".test.ts");
       const importPath = `./${filePath.replace(/\.[tj]sx?$/, "")}`;
       const fnNames = results.map((r) => r.fnName);
-      const describeBlocks = results.map((r) =>
-        r.code.replace(/^import\s+\{[^}]*\}\s+from\s+"vitest";\s*\n?/m, "").trim()
+      const allCode = results.map((r) => r.code).join("\n");
+
+      // Collect any extra vitest exports used (beforeEach, afterEach, etc.)
+      const vitestNames = new Set(["describe", "it", "expect", "vi"]);
+      for (const name of ["beforeEach", "afterEach", "beforeAll", "afterAll", "test"]) {
+        if (new RegExp(`\\b${name}\\s*\\(`).test(allCode)) vitestNames.add(name);
+      }
+      const cleanBlocks = results.map((r) =>
+        r.code.replace(/^import\s+[^;]+;\s*\n?/gm, "").trim()
       );
       const testCode =
-        `import { describe, it, expect, vi } from "vitest";\n` +
+        `import { ${[...vitestNames].join(", ")} } from "vitest";\n` +
         `import { ${fnNames.join(", ")} } from ${JSON.stringify(importPath)};\n\n` +
-        describeBlocks.join("\n\n") + "\n";
+        cleanBlocks.join("\n\n") + "\n";
 
       files.push({
         path: filePath,

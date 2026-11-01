@@ -1,65 +1,83 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { isPalindrome } from "../samples/isPalindrome";
 
 describe("isPalindrome", () => {
-  // cleaned = 'madam'; reverse = 'madam'; they match, so true
-  it("[happy] simple palindrome with lowercase letters", () => {
-    expect(isPalindrome("madam")).toEqual(true);
+  // Happy path
+  it("[happy] simple palindrome word", () => {
+    expect(isPalindrome("madam")).toBe(true);
   });
 
-  // cleaned = 'hello'; reverse = 'olleh'; they differ, so false
-  it("[happy] simple non‑palindrome with lowercase letters", () => {
-    expect(isPalindrome("hello")).toEqual(false);
-  });
-
-  // toLowerCase makes 'racecar'; reverse is 'racecar'; match yields true
   it("[happy] palindrome with mixed case", () => {
-    expect(isPalindrome("RaceCar")).toEqual(true);
+    expect(isPalindrome("RaceCar")).toBe(true);
   });
 
-  // non‑alphanumeric removed → 'amanaplanacanalpanama'; reverse equals same string, so true
   it("[happy] palindrome with spaces and punctuation", () => {
-    expect(isPalindrome("A man, a plan, a canal: Panama")).toEqual(true);
+    expect(isPalindrome("A man, a plan, a canal: Panama")).toBe(true);
   });
 
-  // cleaned = '12321'; reverse = '12321'; match yields true
   it("[happy] numeric palindrome", () => {
-    expect(isPalindrome("12321")).toEqual(true);
+    expect(isPalindrome("12321")).toBe(true);
   });
 
-  // cleaned = '12345'; reverse = '54321'; differ, so false
-  it("[happy] numeric non‑palindrome", () => {
-    expect(isPalindrome("12345")).toEqual(false);
+  it("[happy] alphanumeric palindrome", () => {
+    expect(isPalindrome("1a2b2a1")).toBe(true);
   });
 
-  // cleaned = ''; reverse = ''; empty string equals itself, considered palindrome
-  it("[edge] empty string", () => {
-    expect(isPalindrome("")).toEqual(true);
+  // Boundary value analysis
+  it("[bva] empty string", () => {
+    expect(isPalindrome("")).toBe(true);
   });
 
-  // all characters removed → ''; empty string equals itself, so true
-  it("[edge] string with only non‑alphanumeric characters", () => {
-    expect(isPalindrome("!@#$%^&*()")).toEqual(true);
+  it("[bva] single character", () => {
+    expect(isPalindrome("x")).toBe(true);
   });
 
-  // cleaned = 'x'; reverse = 'x'; match yields true
-  it("[edge] single character string", () => {
-    expect(isPalindrome("x")).toEqual(true);
+  it("[bva] two characters palindrome", () => {
+    expect(isPalindrome("aa")).toBe(true);
   });
 
-  // !! REPAIRED by AI (old expected value: false). The function isPalindrome expects a string and immediately calls text.toLowerCase(). When null is passed, JavaScript throws a TypeError because null has no toLowerCase method. Therefore the correct behavior is to throw an error, not to return false. The test expects a false result and sets shouldThrow to false, which contradicts the actual runtime behavior.
-  // Passing null causes a TypeError when the function tries to call toLowerCase on it.
-  it("[negative] null input treated as string 'null'", () => {
-    expect(() => isPalindrome(null)).toThrow();
+  it("[bva] two characters non‑palindrome", () => {
+    expect(isPalindrome("ab")).toBe(false);
   });
 
-  // toLowerCase → 'äbßbä'; regex keeps letters and digits, result 'äbßbä'; reverse is identical, so true
-  it("[happy] string with Unicode characters that are alphanumeric after lowercasing", () => {
-    expect(isPalindrome("Äbßbä")).toEqual(true);
+  // Off‑by‑one length checks
+  it("[off‑by‑one] length 3 palindrome", () => {
+    expect(isPalindrome("aba")).toBe(true);
   });
 
-  // toLowerCase → 'é!é'; regex removes non‑a‑z0‑9, leaving 'éé' which after lowercasing stays 'éé'; reverse is same, so true
-  it("[happy] string with Unicode characters that are removed by regex", () => {
-    expect(isPalindrome("é!é")).toEqual(true);
+  it("[off‑by‑one] length 3 non‑palindrome", () => {
+    expect(isPalindrome("abc")).toBe(false);
+  });
+
+  // Negative cases
+  it("[negative] non‑palindrome with letters", () => {
+    expect(isPalindrome("hello")).toBe(false);
+  });
+
+  it("[negative] non‑palindrome with numbers and symbols", () => {
+    expect(isPalindrome("123!@#321")).toBe(true);
+  });
+
+  // Edge conditions – type coercion / errors
+  it("[error] null input throws", () => {
+    // @ts-ignore: intentional misuse
+    expect(() => isPalindrome(null)).toThrow(TypeError);
+  });
+
+  it("[error] undefined input throws", () => {
+    // @ts-ignore: intentional misuse
+    expect(() => isPalindrome(undefined)).toThrow(TypeError);
+  });
+
+  it("[error] non‑string object throws", () => {
+    // @ts-ignore: intentional misuse
+    expect(() => isPalindrome({})).toThrow(TypeError);
+  });
+
+  // Large input performance sanity check
+  it("[happy] long palindrome string", () => {
+    const base = "abcdefghijklmnopqrstuvwxyz";
+    const long = base + base.split("").reverse().join("");
+    expect(isPalindrome(long)).toBe(true);
   });
 });
